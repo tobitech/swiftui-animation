@@ -12,6 +12,7 @@ struct ContentView: View {
 	@State var circleCenter = CGPoint.zero
 	@State var circleColor = Color.black
 	@State var isCircleScaled = false
+	@State var isResetting = false
 	
 	var body: some View {
 		VStack {
@@ -20,6 +21,8 @@ struct ContentView: View {
 				.animation(.linear)
 				.frame(width: 50, height: 50)
 				.scaleEffect(self.isCircleScaled ? 2 : 1) // the order is important
+				// .animation(.easeInOut) // the order of animation modifier doesn't always work. Somehow this overrides the sprint animation for the offset below
+				.animation(nil, value: self.isCircleScaled) // to remove animation for a property
 				.offset(
 					x: self.circleCenter.x - 25, // to make it snap to the middle substract half of the diameter
 					y: self.circleCenter.y - 25
@@ -27,7 +30,7 @@ struct ContentView: View {
 				// .animation(.default)
 				// .animation(.linear)
 				// .animation(.easeIn)
-				.animation(.spring(response: 0.3, dampingFraction: 0.1))
+				.animation(self.isResetting ? nil : .spring(response: 0.3, dampingFraction: 0.1), value: self.circleCenter)
 				.gesture(
 					DragGesture(minimumDistance: 0)
 						.onChanged { value in
@@ -58,6 +61,20 @@ struct ContentView: View {
 //				DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
 //					self.circleColor = .black
 //				}
+			}
+			
+			// showing the limitations of implicit animations here.
+			// the animations are batched in one transaction
+			// without the asyncAfter delay, isResetting won't affect the animation.
+			// implicit animations are an untargetted way of performing animations
+			Button("Reset") {
+				self.isResetting = true
+				self.circleCenter = .zero
+				self.circleColor = .black
+				self.isCircleScaled = false
+				DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
+					self.isResetting = false
+				}
 			}
 		}
 	}
