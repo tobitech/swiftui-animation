@@ -18,63 +18,70 @@ struct ContentView: View {
 		VStack {
 			Circle()
 				.fill(self.circleColor)
-				.animation(.linear)
+				// .animation(.linear)
 				.frame(width: 50, height: 50)
 				.scaleEffect(self.isCircleScaled ? 2 : 1) // the order is important
 				// .animation(.easeInOut) // the order of animation modifier doesn't always work. Somehow this overrides the sprint animation for the offset below
-				.animation(nil, value: self.isCircleScaled) // to remove animation for a property
+				// .animation(nil, value: self.isCircleScaled) // to remove animation for a property
 				.offset(
 					x: self.circleCenter.x - 25, // to make it snap to the middle substract half of the diameter
 					y: self.circleCenter.y - 25
 				)
-				// .animation(.default)
-				// .animation(.linear)
-				// .animation(.easeIn)
-				.animation(self.isResetting ? nil : .spring(response: 0.3, dampingFraction: 0.1), value: self.circleCenter)
+				// .animation(self.isResetting ? nil : .spring(response: 0.3, dampingFraction: 0.1), value: self.circleCenter)
 				.gesture(
 					DragGesture(minimumDistance: 0)
 						.onChanged { value in
-							self.circleCenter = value.location
+							withAnimation(.spring(response: 0.3, dampingFraction: 0.1)) {
+								self.circleCenter = value.location
+							}
 						}
 				)
 			
-			Toggle("Scale", isOn: self.$isCircleScaled)
+			Toggle(
+				"Scale",
+				isOn: self.$isCircleScaled.animation(.spring(response: 0.3, dampingFraction: 0.1))
+//				isOn: .init(
+//					get: { self.isCircleScaled },
+//					set: { isOn in
+//						withAnimation(.spring(response: 0.3, dampingFraction: 0.1)) {
+//							self.isCircleScaled = isOn
+//						}
+//					}
+//				)
+			)
 				.padding(.horizontal)
+			
 			Button("Circle Colors") {
 				// self.circleColor = .red
 				[Color.red, .blue, .green, .purple, .black]
 					.enumerated()
 					.forEach { offset, color in
 						DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(offset)) {
-							self.circleColor = color
+							withAnimation(.linear) {
+								self.circleColor = color
+							}
+							
+							// withAnimation: (() -> R) -> R
 						}
 					}
-//				DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//					self.circleColor = .blue
-//				}
-//				DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-//					self.circleColor = .green
-//				}
-//				DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-//					self.circleColor = .purple
-//				}
-//				DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-//					self.circleColor = .black
-//				}
 			}
 			
 			// showing the limitations of implicit animations here.
 			// the animations are batched in one transaction
 			// without the asyncAfter delay, isResetting won't affect the animation.
-			// implicit animations are an untargetted way of performing animations
+			// implicit animations are an untargetted way of performing animations.
+			// with explicit animations we just don't have to do anything when we change the values
+			// and we can wrap the value changes in withAnimation if we want reset to happen with a targetted animation and you can even move some changes out of the block.
 			Button("Reset") {
-				self.isResetting = true
-				self.circleCenter = .zero
-				self.circleColor = .black
-				self.isCircleScaled = false
-				DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
-					self.isResetting = false
+				// self.isResetting = true
+				withAnimation {
+					self.circleCenter = .zero
+					self.circleColor = .black
 				}
+				self.isCircleScaled = false
+//				DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
+//					self.isResetting = false
+//				}
 			}
 		}
 	}
